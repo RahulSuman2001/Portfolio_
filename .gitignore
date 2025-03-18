@@ -1,0 +1,9 @@
+Portfolio/__pycache__/
+Portfolio/media/  # Ignore uploaded media files (unless needed)
+Portfolio/venv/  # Ignore virtual environment
+Portfolio/staticfiles/  # Ignore collected static files
+
+Ft-frontend/node_modules/  # Ignore dependencies (can be installed with npm install)
+Ft-frontend/build/  # Ignore build files (generated after npm run build)
+Ft-frontend/.next/  # If using Next.js
+Ft-frontend/.cache/  # Ignore caching files
