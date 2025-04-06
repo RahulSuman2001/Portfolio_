@@ -21,14 +21,16 @@ import datetime
 import io
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 
 def validate_file_extension(file):
     allowed_extensions = ['csv', 'xls', 'xlsx']
     if not file.name.split('.')[-1] in allowed_extensions:
         raise ValidationError("Only Excel or CSV files are allowed.")
 
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
 def upload_file(request):
@@ -73,6 +75,7 @@ def upload_file(request):
         }, status=201)
     except Exception as e:
         return Response({"message": f"Error processing file: {str(e)}"}, status=500)
+ #<------------------------------------------------------------------------------------------------------------->   
 @api_view(['POST']) 
 def signup(request):
     if request.method == 'POST':
@@ -90,7 +93,7 @@ def signup(request):
             return JsonResponse({'message': 'User already exists'}, status=400)
         except json.JSONDecodeError:
             return JsonResponse({'message': 'Invalid JSON'}, status=400)
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['POST'])
 def login(request):
     if request.method == "POST":
@@ -125,7 +128,7 @@ def login(request):
             return JsonResponse({"message": "Invalid JSON"}, status=400)
 
     return JsonResponse({"message": "Only POST requests are allowed"}, status=405)
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['POST'])
 def dashboard(request):
     if request.method == "POST":
@@ -133,16 +136,16 @@ def dashboard(request):
             data=json.loads(request.body)
             username=data.get("username")
             password=data.get("password")
-            print(username)
+            
 
             
             try:
                 user = Users.objects.get(username=username)  # Now authentication will work
                 if username==user.username and password==user.password:
-                    print(password)
+                   
                     return JsonResponse({"message": "Login successful"}, status=200)
                 else:
-                    print(password)
+                   
                     return JsonResponse({"message": "Invalid credentials"}, status=400)
             except:
                 print("wrong")
@@ -151,7 +154,7 @@ def dashboard(request):
             return JsonResponse({"message": "Invalid JSON"}, status=400)
 
     return JsonResponse({"message": "Only POST requests are allowed"}, status=405)
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['GET'])
 def get_columns(request):
     """Returns column names from the last uploaded file."""
@@ -167,9 +170,9 @@ def get_columns(request):
         
         # Read the file using Pandas
         if latest_file.file.name.endswith('.csv'):
-            df = pd.read_csv(file_path, nrows=5)  # Read only first 5 rows
+            df = pd.read_csv(file_path, nrows=1)  # Read only first 1 row
         else:
-            df = pd.read_excel(file_path, nrows=5)
+            df = pd.read_excel(file_path, nrows=1)
 
         columns = df.columns.tolist()  # Extract column names
 
@@ -177,6 +180,7 @@ def get_columns(request):
 
     except Exception as e:
         return Response({"message": f"Error reading file: {str(e)}"}, status=500)
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['POST'])
 def generate_visualization(request):
     """Generates a visualization based on user selection."""
@@ -219,14 +223,14 @@ def generate_visualization(request):
     processed_data = df[selected_columns].to_dict(orient='records')
     
     return JsonResponse({"message": "Data processed successfully", "data": processed_data}, status=200)
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['GET'])
 def user_fetch(request):   
         users = Users.objects.all()
         serializer = Userse(users, many=True)
         # print(serializer.data)
         return Response(serializer.data)
-
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['PUT'])
 def update_user(request, id):
     try:
@@ -240,6 +244,8 @@ def update_user(request, id):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+#<------------------------------------------------------------------------------------------------------------->
 @api_view(['POST'])
 def delete_users(request):
     user_ids = request.data.get('ids', [])
@@ -248,3 +254,93 @@ def delete_users(request):
 
     deleted_count, _ = Users.objects.filter(id__in=user_ids).delete()
     return Response({"message": f"Deleted {deleted_count} users"}, status=status.HTTP_200_OK)
+#<------------------------------------------------------------------------------------------------------------->
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def get_pred_columns(request):
+    file = request.FILES.get('file')  # safer than request.FILES['file']
+    
+    if not file:
+        return Response({'error': 'No file provided'}, status=400)
+
+    try:
+        df = pd.read_excel(file) if file.name.endswith('.xlsx') else pd.read_csv(file)
+        columns = df.columns.tolist()
+        return Response({'columns': columns})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def predict_view(request):
+    """
+    Receives file + prediction inputs, saves file, performs regression.
+    Request should include:
+    - file
+    - x_columns (list in JSON string format)
+    - y_column (string)
+    - degree (optional, default 2)
+    """
+    try:
+        file = request.FILES.get('file')
+        if not file:
+            return Response({"error": "No file provided."}, status=400)
+
+        uploaded = UploadedFile.objects.create(file=file)
+        file_path = uploaded.file.path
+
+        x_columns = json.loads(request.data.get('x_columns', '[]'))
+        y_column = request.data.get('y_column')
+        degree = int(request.data.get('degree', 2))
+
+        if not x_columns or not y_column:
+            return Response({"error": "x_columns and y_column are required."}, status=400)
+
+        # Read uploaded file into a DataFrame
+        if file.name.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+
+        # Validate column existence
+        for col in x_columns + [y_column]:
+            if col not in df.columns:
+                return Response({"error": f"Column '{col}' not found in the file."}, status=400)
+
+        # Extract input features and target
+        X = df[x_columns].values
+        y = df[y_column].values
+
+        # Apply polynomial transformation
+        poly = PolynomialFeatures(degree=degree)
+        X_poly = poly.fit_transform(X)
+
+        # Handle NaNs in target
+        known_mask = ~pd.isna(y)
+        unknown_mask = pd.isna(y)
+
+        if known_mask.sum() == 0:
+            return Response({"error": "No known values to train the model."}, status=400)
+
+        X_known = X_poly[known_mask]
+        y_known = y[known_mask]
+
+        model = LinearRegression()
+        model.fit(X_known, y_known)
+
+        # Predict all values (for charting)
+        y_pred = model.predict(X_poly)
+
+        # Fill the missing values in y with predicted values
+        y_filled = y.copy()
+        y_filled[unknown_mask] = y_pred[unknown_mask]
+
+        return Response({
+            "actual": y_filled.tolist(),  # Filled y values
+            "predicted": y_pred.tolist(),  # All predictions
+            "x": df[x_columns].to_dict(orient='records')
+        })
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

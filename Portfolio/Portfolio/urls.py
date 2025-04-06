@@ -18,15 +18,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from .quickstart.views import upload_file
-from .quickstart.views import signup, login
-from .quickstart.views import get_columns,generate_visualization,user_fetch,delete_users,update_user
+from .quickstart.views import signup, login,predict_view
+from .quickstart.views import get_columns,generate_visualization,user_fetch,delete_users,update_user,get_pred_columns
 
 
 urlpatterns = [
     path('signup/', signup),
     path('login/', login),
+    path('predict/', predict_view, name='predict'),
     path('api/upload-file/', upload_file, name='upload_file'),
     path('columns/', get_columns, name='columns'),
+     path('api/get_pred_columns/', get_pred_columns, name='get_pred_columns'),
     path('generate-visualization/', generate_visualization, name='generate_visualization'),
     path('users/', user_fetch, name='user_fetch'),
     path('userupdate/<int:id>/', update_user, name='update_user'),

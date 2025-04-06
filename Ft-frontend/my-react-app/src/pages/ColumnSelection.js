@@ -4,9 +4,9 @@ import axios from "axios";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, AreaChart, Area, ScatterChart, Scatter, LineChart, Line, Treemap } from "recharts";
 
 const chartOptions = [
-    { category: "Single Column Charts", charts: ["Pie Chart", "Histogram", "Word Cloud", "Treemap"] },
-    { category: "Two Column Charts", charts: ["Bar Chart", "Scatter Plot", "Area Chart", "Box and Whisker Plot", "Line Chart", "Heat Map"] },
-    { category: "Three Column Charts", charts: ["Correlation Matrices"] },
+    { category: "Single Column Charts", charts: ["Pie Chart", "Histogram"] },
+    { category: "Two Column Charts", charts: ["Bar Chart", "Scatter Plot", "Area Chart", "Line Chart"] },
+    
 ];
 
 const ColumnSelection = () => {
