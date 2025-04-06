@@ -15,7 +15,7 @@ import {
   Checkbox,
   ListItemText,
 } from '@mui/material';
-import { UploadFile } from '@mui/icons-material';
+import { Margin, UploadFile } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,

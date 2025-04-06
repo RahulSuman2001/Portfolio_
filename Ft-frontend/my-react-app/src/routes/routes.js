@@ -7,7 +7,7 @@ import UserManagement from "../pages/UserManagement.js";
 import PredictionChart from "../pages/Prediction.js";
 export default function AppRoutes() {
     return (
-        <Router>
+        <Router >
             <Routes>
                 <Route path="/" element={<PredictionChart />} /> 
                 <Route path="/signup" element={<Signup />} />
